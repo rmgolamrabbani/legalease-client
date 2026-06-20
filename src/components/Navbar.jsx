@@ -2,21 +2,37 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Search, ChevronDown, Menu, X, LayoutDashboard, Calendar, User } from "lucide-react";
-
+import { usePathname, useRouter } from "next/navigation";
+import { Search, ChevronDown, Menu, X, LayoutDashboard, Calendar, User, LogOut } from "lucide-react";
+// BetterAuth এর সঠিক ক্লায়েন্ট মেথড অবজেক্ট ইমপোর্ট করা হয়েছে
+import { useSession, authClient } from "@/lib/auth-client"; 
 
 export default function Navbar() {
+  const { data: session, isPending } = useSession();
+  const router = useRouter();
+  const pathname = usePathname();
+  
   const [mobileOpen, setMobileOpen] = useState(false);
   const [desktopDropdownOpen, setDesktopDropdownOpen] = useState(false);
   const [mobileDropdownOpen, setMobileDropdownOpen] = useState(false);
   
-  const pathname = usePathname();
   const dropdownRef = useRef(null);
 
   const isActive = (path) => {
     if (path === "/") return pathname === "/";
     return pathname.startsWith(path);
+  };
+
+  // লগআউট হ্যান্ডলার (BetterAuth এর সঠিক নিয়ম অনুযায়ী ফিক্সড)
+  const handleSignOut = async () => {
+    try {
+      await authClient.signOut(); 
+      setDesktopDropdownOpen(false);
+      setMobileOpen(false);
+      router.push("/auth/login"); // লগআউট হওয়ার পর লগইন পেজে রিডাইরেক্ট
+    } catch (error) {
+      console.error("Sign out failed:", error);
+    }
   };
 
   useEffect(() => {
@@ -43,7 +59,6 @@ export default function Navbar() {
   }, []);
 
   return (
-    // এখানে relative ক্লাসটি যোগ করা হয়েছে যাতে মোবাইল মেনু হেডারের নিচ থেকে শুরু হয়
     <header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white relative">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         
@@ -77,49 +92,14 @@ export default function Navbar() {
             Browse Lawyers
           </Link>
 
-          {/* Desktop Dashboard Dropdown */}
-          <div className="relative" ref={dropdownRef}>
-            <button 
-              onClick={() => setDesktopDropdownOpen(!desktopDropdownOpen)}
-              className={`flex items-center gap-1 text-[15px] font-bold tracking-wide transition-colors ${
-                desktopDropdownOpen || pathname.startsWith("/dashboard") ? "text-amber-500" : "text-slate-800 hover:text-amber-500"
-              }`}
-            >
-              Dashboard
-              <ChevronDown size={15} className={`transition-transform duration-200 ${desktopDropdownOpen ? "rotate-180" : ""}`} />
-            </button>
-
-            {desktopDropdownOpen && (
-              <div className="absolute left-0 mt-3 w-52 rounded-xl border border-slate-100 bg-white p-1.5 shadow-xl z-50">
-                <Link
-                  href="/dashboard"
-                  onClick={() => setDesktopDropdownOpen(false)}
-                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                >
-                  <LayoutDashboard size={16} className="text-slate-400" />
-                  Overview
-                </Link>
-
-                <Link
-                  href="/dashboard/bookings"
-                  onClick={() => setDesktopDropdownOpen(false)}
-                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                >
-                  <Calendar size={16} className="text-slate-400" />
-                  Bookings
-                </Link>
-
-                <Link
-                  href="/dashboard/profile"
-                  onClick={() => setDesktopDropdownOpen(false)}
-                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                >
-                  <User size={16} className="text-slate-400" />
-                  Profile
-                </Link>
-              </div>
-            )}
-          </div>
+          <Link
+            href="/dashboard"
+            className={`text-[15px] font-bold tracking-wide transition-colors ${
+              isActive("/dashboard") ? "text-amber-500" : "text-slate-800 hover:text-amber-500"
+            }`}
+          >
+            Dashboard
+          </Link>
         </nav>
 
         {/* DESKTOP RIGHT ACTIONS */}
@@ -128,24 +108,104 @@ export default function Navbar() {
             <input
               type="text"
               placeholder="Search lawyers..."
-              className="h-10 w-60 rounded-lg border border-gray-200 bg-gray-50 pl-4 pr-10 text-sm outline-none transition focus:border-amber-500 focus:bg-white"
+              className="h-10 w-52 rounded-lg border border-gray-200 bg-gray-50 pl-4 pr-10 text-sm outline-none transition focus:border-amber-500 focus:bg-white"
             />
             <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
           </div>
 
-          <Link
-            href="/login"
-            className="rounded-lg border border-gray-200 px-5 py-2 text-sm font-bold text-slate-700 transition hover:bg-gray-50"
-          >
-            Login
-          </Link>
+          {/* সেশন চেকিং এর মাধ্যমে ডাইনামিক UI কন্ট্রোল */}
+          {isPending ? (
+            <div className="h-10 w-24 bg-slate-100 rounded-lg animate-pulse" />
+          ) : session?.user ? (
+            
+            /* লগইন থাকা অবস্থায় ইউজারের প্রোফাইল ড্রপডাউন */
+            <div className="relative" ref={dropdownRef}>
+              <button 
+                onClick={() => setDesktopDropdownOpen(!desktopDropdownOpen)}
+                className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50/50 p-1.5 pr-3 hover:bg-slate-50 transition-all focus:outline-none"
+              >
+                {session.user.image ? (
+                  <img 
+                    src={session.user.image} 
+                    alt={session.user.name} 
+                    className="h-8 w-8 rounded-lg object-cover"
+                  />
+                ) : (
+                  <div className="h-8 w-8 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-bold text-xs uppercase">
+                    {session.user.name?.charAt(0) || "U"}
+                  </div>
+                )}
+                <span className="text-xs font-bold text-slate-800 max-w-[100px] truncate">
+                  {session.user.name}
+                </span>
+                <ChevronDown size={14} className={`text-slate-400 transition-transform duration-200 ${desktopDropdownOpen ? "rotate-180" : ""}`} />
+              </button>
 
-          <Link
-            href="/signup"
-            className="rounded-lg bg-amber-500 px-5 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-amber-600"
-          >
-            Get Started
-          </Link>
+              {/* প্রোফাইল ড্রপডাউন ওপেন মেনু */}
+              {desktopDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-52 rounded-xl border border-slate-100 bg-white p-1.5 shadow-xl z-50 animate-in fade-in-50 slide-in-from-top-1 duration-150">
+                  <div className="px-3 py-2 border-b border-slate-50 mb-1">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Signed in as</p>
+                    <p className="text-xs font-bold text-slate-700 truncate">{session.user.email}</p>
+                  </div>
+
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setDesktopDropdownOpen(false)}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                  >
+                    <LayoutDashboard size={16} className="text-slate-400" />
+                    Overview
+                  </Link>
+
+                  <Link
+                    href="/dashboard/bookings"
+                    onClick={() => setDesktopDropdownOpen(false)}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                  >
+                    <Calendar size={16} className="text-slate-400" />
+                    Bookings
+                  </Link>
+
+                  <Link
+                    href="/dashboard/profile"
+                    onClick={() => setDesktopDropdownOpen(false)}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                  >
+                    <User size={16} className="text-slate-400" />
+                    Profile
+                  </Link>
+
+                  <button
+                    onClick={handleSignOut}
+                    className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors text-left mt-1 border-t border-slate-50 pt-1.5"
+                  >
+                    <LogOut size={16} className="text-red-400" />
+                    Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
+
+          ) : (
+            
+            /* লগইন না থাকলে সাধারণ গেস্ট বাটনসমূহ */
+            <>
+              <Link
+                href="/auth/login"
+                className="rounded-lg border border-gray-200 px-5 py-2 text-sm font-bold text-slate-700 transition hover:bg-gray-50"
+              >
+                Login
+              </Link>
+
+              <Link
+                href="/auth/signup"
+                className="rounded-lg bg-amber-500 px-5 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-amber-600"
+              >
+                Get Started
+              </Link>
+            </>
+          )}
         </div>
 
         {/* MOBILE HAMBURGER BUTTON */}
@@ -162,11 +222,29 @@ export default function Navbar() {
       {/* FIXED MOBILE DRAWER OVERLAY */}
       {mobileOpen && (
         <div className="absolute top-full left-0 w-full z-50 bg-white px-6 py-6 shadow-xl lg:hidden border-t border-slate-100 animate-in slide-in-from-top duration-200">
+          
+          {/* ইউজার মোবাইল মোডে লগইন থাকলে তার শর্ট ওয়েলকাম কার্ড */}
+          {session?.user && (
+            <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl mb-4">
+              {session.user.image ? (
+                <img src={session.user.image} alt="" className="w-9 h-9 rounded-lg" />
+              ) : (
+                <div className="w-9 h-9 bg-amber-500 text-slate-950 flex items-center justify-center font-bold text-sm rounded-lg">
+                  {session.user.name?.charAt(0)}
+                </div>
+              )}
+              <div className="truncate">
+                <p className="text-xs font-black text-slate-800 leading-none">{session.user.name}</p>
+                <p className="text-[10px] text-slate-400 font-medium mt-1 truncate">{session.user.email}</p>
+              </div>
+            </div>
+          )}
+
           <nav className="flex flex-col gap-1">
             <Link
               href="/"
               onClick={() => setMobileOpen(false)}
-              className={`rounded-lg px-3 py-3 text-base font-bold transition-all ${
+              className={`rounded-lg px-3 py-2.5 text-base font-bold transition-all ${
                 isActive("/") ? "bg-amber-50 text-amber-500" : "text-slate-900 hover:bg-slate-50"
               }`}
             >
@@ -176,7 +254,7 @@ export default function Navbar() {
             <Link
               href="/lawyers"
               onClick={() => setMobileOpen(false)}
-              className={`rounded-lg px-3 py-3 text-base font-bold transition-all ${
+              className={`rounded-lg px-3 py-2.5 text-base font-bold transition-all ${
                 isActive("/lawyers") ? "bg-amber-50 text-amber-500" : "text-slate-900 hover:bg-slate-50"
               }`}
             >
@@ -187,7 +265,7 @@ export default function Navbar() {
             <div className="w-full">
               <button
                 onClick={() => setMobileDropdownOpen(!mobileDropdownOpen)}
-                className={`flex w-full items-center justify-between rounded-lg px-3 py-3 text-base font-bold text-slate-900 hover:bg-slate-50 ${
+                className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-base font-bold text-slate-900 hover:bg-slate-50 ${
                   pathname.startsWith("/dashboard") ? "text-amber-500" : ""
                 }`}
               >
@@ -224,7 +302,7 @@ export default function Navbar() {
           </nav>
 
           {/* Mobile Actions */}
-          <div className="mt-6 border-t border-slate-100 pt-6 space-y-4">
+          <div className="mt-4 border-t border-slate-100 pt-4 space-y-4">
             <div className="relative w-full">
               <input
                 type="text"
@@ -234,22 +312,33 @@ export default function Navbar() {
               <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <Link
-                href="/login"
-                onClick={() => setMobileOpen(false)}
-                className="flex h-11 items-center justify-center rounded-lg border border-gray-200 text-sm font-bold text-slate-700 bg-white"
+            {/* মোবাইলেও ডাইনামিক বাতন অ্যাকশন */}
+            {session?.user ? (
+              <button
+                onClick={handleSignOut}
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-red-50 text-sm font-bold text-red-600 shadow-sm border border-red-100"
               >
-                Login
-              </Link>
-              <Link
-                href="/signup"
-                onClick={() => setMobileOpen(false)}
-                className="flex h-11 items-center justify-center rounded-lg bg-amber-500 text-sm font-bold text-white shadow-sm"
-              >
-                Get Started
-              </Link>
-            </div>
+                <LogOut size={16} />
+                Sign Out
+              </button>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <Link
+                  href="/auth/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex h-11 items-center justify-center rounded-lg border border-gray-200 text-sm font-bold text-slate-700 bg-white"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/auth/signup"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex h-11 items-center justify-center rounded-lg bg-amber-500 text-sm font-bold text-white shadow-sm"
+                >
+                  Get Started
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       )}

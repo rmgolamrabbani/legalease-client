@@ -1,12 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
-import { User, Scale, Mail, Lock, ShieldCheck, ArrowRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { User, Scale, Mail, Lock, ArrowRight, Eye, EyeOff, Check, X } from "lucide-react";
+// আপনার প্রজেক্টের auth-client এর সঠিক পাথ এবং মেথড নিশ্চিত করুন
+import { signUp, signIn } from "@/lib/auth-client"; 
 
 export default function SignUp() {
+  const router = useRouter();
+  
   // ফর্ম স্টেট ম্যানেজমেন্ট
-  const [role, setRole] = useState("user"); // ডিফল্ট রোল: "user" অথবা "lawyer"
+  const [role, setRole] = useState("user"); 
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -14,7 +19,13 @@ export default function SignUp() {
     confirmPassword: "",
     agreeTerms: false,
   });
+  
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  
+  // পাসওয়ার্ড শো/হাইড স্টেট
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // ইনপুট চেঞ্জ হ্যান্ডলার
   const handleInputChange = (e) => {
@@ -23,25 +34,78 @@ export default function SignUp() {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
+    if (error) setError(""); // ইউজার টাইপ করা শুরু করলে এরর মেসেজ মুছে যাবে
   };
 
-  // ফর্ম সাবমিট হ্যান্ডলার
-  const handleSubmit = (e) => {
+  // প্রো-লেভেল পাসওয়ার্ড স্ট্রেন্থ চেকার (লাইভ ভ্যালিডেশন)
+  const passwordRequirements = useMemo(() => {
+    const p = formData.password;
+    return [
+      { id: "length", label: "Min 8 characters", valid: p.length >= 8 },
+      { id: "number", label: "At least one number", valid: /\d/.test(p) },
+      { id: "uppercase", label: "One uppercase letter", valid: /[A-Z]/.test(p) },
+      { id: "special", label: "One special character", valid: /[^A-Za-z0-9]/.test(p) },
+    ];
+  }, [formData.password]);
+
+  // সব রিকোয়ারমেন্ট ম্যাচ করেছে কিনা
+  const isPasswordValid = passwordRequirements.every(req => req.valid);
+  const doPasswordsMatch = formData.password === formData.confirmPassword;
+
+  // ফর্ম সাবমিট হ্যান্ডলার (Email + Password)
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match!");
+    setError("");
+
+    // প্রো-লেভেল সিকিউরিটি চেইন ভ্যালিডেশন
+    if (!isPasswordValid) {
+      setError("Please fulfill all password strength criteria.");
+      return;
+    }
+
+    if (!doPasswordsMatch) {
+      setError("Passwords do not match!");
       return;
     }
 
     setLoading(true);
     
-    // ডামি এপিআই রিকোয়েস্ট পেলোড সাবমিশন স্ট্রাকচার
-    setTimeout(() => {
-      console.log("Submitting Registration Data:", { role, ...formData });
-      alert(`Registration successful as a ${role.toUpperCase()}!`);
+    try {
+      // BetterAuth এ সাইনআপ রিকোয়েস্ট
+      const response = await signUp.email({
+        email: formData.email,
+        password: formData.password,
+        name: formData.fullName,
+        data: { role: role } // BetterAuth মেটাডাটা রোল ম্যাপ
+      });
+
+      if (response?.error) {
+        setError(response.error.message || "Registration failed. Email might already exist.");
+      } else {
+        // সফল হলে হোম পেজে রিডাইরেক্ট
+        router.push("/");
+      }
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
+      console.error(err);
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
+  };
+
+  // Google OAuth হ্যান্ডলার
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    try {
+      await signIn.social({
+        provider: "google",
+        callbackURL: "/", // লগইন সফল হলে হোম পেজে যাবে
+      });
+    } catch (err) {
+      setError("Google authentication failed.");
+      console.error(err);
+      setLoading(false);
+    }
   };
 
   return (
@@ -59,130 +123,195 @@ export default function SignUp() {
           </p>
         </div>
 
+        {/* Error Alert Box */}
+        {error && (
+          <div className="p-3 text-xs font-semibold text-red-600 bg-red-50 border border-red-100 rounded-xl text-center animate-fade-in">
+            {error}
+          </div>
+        )}
+
+        {/* STEP 1: Role Choice (User / Lawyer Segment) */}
+        <div className="space-y-2">
+          <label className="text-[11px] font-extrabold text-slate-800 uppercase tracking-wider block">
+            Select Your Profile Role
+          </label>
+          <div className="grid grid-cols-2 gap-4">
+            
+            {/* Regular Client Role Card */}
+            <button
+              type="button"
+              onClick={() => setRole("user")}
+              className={`p-4 border rounded-xl text-left flex flex-col justify-between h-28 transition-all ${
+                role === "user"
+                  ? "border-amber-500 bg-amber-500/5 ring-2 ring-amber-500/10"
+                  : "border-slate-200 bg-white hover:border-slate-300"
+              }`}
+            >
+              <div className={`p-2 rounded-lg inline-block ${role === "user" ? "bg-amber-500 text-slate-950" : "bg-slate-50 text-slate-500"}`}>
+                <User size={18} />
+              </div>
+              <div>
+                <h4 className="text-xs font-black text-slate-900">General Client</h4>
+                <p className="text-[10px] text-slate-400 font-medium mt-0.5">I want to hire legal counsel</p>
+              </div>
+            </button>
+
+            {/* Certified Lawyer Role Card */}
+            <button
+              type="button"
+              onClick={() => setRole("lawyer")}
+              className={`p-4 border rounded-xl text-left flex flex-col justify-between h-28 transition-all ${
+                role === "lawyer"
+                  ? "border-amber-500 bg-amber-500/5 ring-2 ring-amber-500/10"
+                  : "border-slate-200 bg-white hover:border-slate-300"
+              }`}
+            >
+              <div className={`p-2 rounded-lg inline-block ${role === "lawyer" ? "bg-amber-500 text-slate-950" : "bg-slate-50 text-slate-500"}`}>
+                <Scale size={18} />
+              </div>
+              <div>
+                <h4 className="text-xs font-black text-slate-900">Legal Practitioner</h4>
+                <p className="text-[10px] text-slate-400 font-medium mt-0.5">I am a certified advocate</p>
+              </div>
+            </button>
+
+          </div>
+        </div>
+
+        {/* Google Login OAuth Flow Integration */}
+        <button
+          type="button"
+          disabled={loading}
+          onClick={handleGoogleLogin}
+          className="w-full py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24">
+            <path fill="#EA4335" d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.68 1.54 15.03 1 12 1 7.35 1 3.37 3.67 1.39 7.56l3.89 3.02C6.21 7.42 8.87 5.04 12 5.04z"/>
+            <path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.51h6.46c-.28 1.48-1.12 2.74-2.38 3.58l3.69 2.87c2.16-1.99 3.42-4.92 3.42-8.6z"/>
+            <path fill="#FBBC05" d="M5.28 14.42c-.24-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29L1.39 7.56C.5 9.34 0 11.32 0 13.4s.5 4.06 1.39 5.84l3.89-3.02z"/>
+            <path fill="#34A853" d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.69-2.87c-1.02.68-2.33 1.09-3.96 1.09-3.13 0-5.79-2.38-6.74-5.54L1.39 16.8C3.37 20.33 7.35 23 12 23z"/>
+          </svg>
+          Continue with Google
+        </button>
+
+        <div className="relative flex py-1 items-center">
+          <div className="flex-grow border-t border-slate-100"></div>
+          <span className="flex-shrink mx-4 text-[10px] text-slate-400 font-bold uppercase tracking-wider">Or email register</span>
+          <div className="flex-grow border-t border-slate-100"></div>
+        </div>
+
         {/* Interactive Form Body */}
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4">
           
-          {/* STEP 1: Role Choice (User / Lawyer Segment) */}
-          <div className="space-y-2">
-            <label className="text-xs font-extrabold text-slate-800 uppercase tracking-wider block">
-              Select Your Profile Role
-            </label>
-            <div className="grid grid-cols-2 gap-4">
-              
-              {/* Regular Client Role Card */}
-              <button
-                type="button"
-                onClick={() => setRole("user")}
-                className={`p-4 border rounded-xl text-left flex flex-col justify-between h-28 transition-all ${
-                  role === "user"
-                    ? "border-amber-500 bg-amber-500/5 ring-2 ring-amber-500/10"
-                    : "border-slate-200 bg-white hover:border-slate-300"
-                }`}
-              >
-                <div className={`p-2 rounded-lg inline-block ${role === "user" ? "bg-amber-500 text-slate-950" : "bg-slate-50 text-slate-500"}`}>
-                  <User size={18} />
-                </div>
-                <div>
-                  <h4 className="text-xs font-black text-slate-900">General Client</h4>
-                  <p className="text-[10px] text-slate-400 font-medium mt-0.5">I want to hire legal counsel</p>
-                </div>
-              </button>
-
-              {/* Certified Lawyer Role Card */}
-              <button
-                type="button"
-                onClick={() => setRole("lawyer")}
-                className={`p-4 border rounded-xl text-left flex flex-col justify-between h-28 transition-all ${
-                  role === "lawyer"
-                    ? "border-amber-500 bg-amber-500/5 ring-2 ring-amber-500/10"
-                    : "border-slate-200 bg-white hover:border-slate-300"
-                }`}
-              >
-                <div className={`p-2 rounded-lg inline-block ${role === "lawyer" ? "bg-amber-500 text-slate-950" : "bg-slate-50 text-slate-500"}`}>
-                  <Scale size={18} />
-                </div>
-                <div>
-                  <h4 className="text-xs font-black text-slate-900">Legal Practitioner</h4>
-                  <p className="text-[10px] text-slate-400 font-medium mt-0.5">I am a certified advocate</p>
-                </div>
-              </button>
-
+          {/* Full Name input */}
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold text-slate-500 block">Full Name</label>
+            <div className="relative">
+              <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                name="fullName"
+                required
+                value={formData.fullName}
+                onChange={handleInputChange}
+                placeholder="e.g. Anisur Rahman"
+                className="w-full pl-11 pr-4 py-2.5 border border-slate-200 bg-slate-50 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+              />
             </div>
           </div>
 
-          <hr className="border-slate-100" />
+          {/* Email Input */}
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold text-slate-500 block">Email Address</label>
+            <div className="relative">
+              <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="email"
+                name="email"
+                required
+                value={formData.email}
+                onChange={handleInputChange}
+                placeholder="name@domain.com"
+                className="w-full pl-11 pr-4 py-2.5 border border-slate-200 bg-slate-50 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+              />
+            </div>
+          </div>
 
-          {/* STEP 2: Main Credential Inputs */}
-          <div className="space-y-4">
-            
-            {/* Full Name input */}
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-500 block">Full Name</label>
-              <div className="relative">
-                <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  name="fullName"
-                  required
-                  value={formData.fullName}
-                  onChange={handleInputChange}
-                  placeholder="e.g. Anisur Rahman"
-                  className="w-full pl-11 pr-4 py-2.5 border border-slate-200 bg-slate-50 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
-                />
-              </div>
+          {/* Password input with Show/Hide and Strength Checker */}
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold text-slate-500 block">Password</label>
+            <div className="relative">
+              <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                required
+                value={formData.password}
+                onChange={handleInputChange}
+                placeholder="••••••••"
+                className={`w-full pl-11 pr-10 py-2.5 border bg-slate-50 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all ${
+                  formData.password && !isPasswordValid ? "border-amber-400" : "border-slate-200"
+                }`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
 
-            {/* Email Input */}
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-500 block">Email Address</label>
-              <div className="relative">
-                <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="email"
-                  name="email"
-                  required
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  placeholder="name@domain.com"
-                  className="w-full pl-11 pr-4 py-2.5 border border-slate-200 bg-slate-50 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
-                />
+            {/* পাসওয়ার্ড রিকোয়ারমেন্টস ইন্ডিকেটর (লাইভ প্যানেল) */}
+            {formData.password && (
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 mt-2 grid grid-cols-2 gap-2 transition-all">
+                {passwordRequirements.map((req) => (
+                  <div key={req.id} className="flex items-center gap-1.5 text-[10px] font-medium">
+                    {req.valid ? (
+                      <Check size={12} className="text-emerald-500 stroke-[3]" />
+                    ) : (
+                      <X size={12} className="text-slate-300 stroke-[3]" />
+                    )}
+                    <span className={req.valid ? "text-emerald-600" : "text-slate-400"}>
+                      {req.label}
+                    </span>
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
+          </div>
 
-            {/* Password input */}
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-500 block">Password</label>
-              <div className="relative">
-                <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="password"
-                  name="password"
-                  required
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  placeholder="••••••••"
-                  className="w-full pl-11 pr-4 py-2.5 border border-slate-200 bg-slate-50 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
-                />
-              </div>
+          {/* Confirm Password input with Show/Hide */}
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold text-slate-500 block">Confirm Password</label>
+            <div className="relative">
+              <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                name="confirmPassword"
+                required
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                placeholder="••••••••"
+                className={`w-full pl-11 pr-10 py-2.5 border rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all ${
+                  formData.confirmPassword && !doPasswordsMatch
+                    ? "border-red-300 bg-red-50/30 text-red-900" 
+                    : formData.confirmPassword && doPasswordsMatch
+                    ? "border-emerald-300 bg-emerald-50/10"
+                    : "border-slate-200 bg-slate-50"
+                }`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
-
-            {/* Confirm Password input */}
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-500 block">Confirm Password</label>
-              <div className="relative">
-                <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="password"
-                  name="confirmPassword"
-                  required
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  placeholder="••••••••"
-                  className="w-full pl-11 pr-4 py-2.5 border border-slate-200 bg-slate-50 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
-                />
-              </div>
-            </div>
-
+            {formData.confirmPassword && !doPasswordsMatch && (
+              <p className="text-[10px] text-red-500 font-semibold mt-0.5 pl-1">Passwords do not match yet</p>
+            )}
           </div>
 
           {/* Legal Document Terms Checkbox */}
@@ -218,7 +347,7 @@ export default function SignUp() {
           </button>
 
         </form>
-
+        
         {/* Existing User Redirect Link Context */}
         <div className="text-center pt-2">
           <p className="text-xs text-slate-400 font-medium">
