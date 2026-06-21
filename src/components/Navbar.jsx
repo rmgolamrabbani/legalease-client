@@ -60,7 +60,7 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white relative">
-      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         
         {/* LOGO */}
         <Link href="/" className="flex items-center gap-3 shrink-0">
@@ -84,9 +84,9 @@ export default function Navbar() {
           </Link>
 
           <Link
-            href="/lawyers"
+            href="/browse"
             className={`text-[15px] font-bold tracking-wide transition-colors ${
-              isActive("/lawyers") ? "text-amber-500" : "text-slate-800 hover:text-amber-500"
+              isActive("/browse") ? "text-amber-500" : "text-slate-800 hover:text-amber-500"
             }`}
           >
             Browse Lawyers
@@ -252,10 +252,10 @@ export default function Navbar() {
             </Link>
 
             <Link
-              href="/lawyers"
+              href="/browse"
               onClick={() => setMobileOpen(false)}
               className={`rounded-lg px-3 py-2.5 text-base font-bold transition-all ${
-                isActive("/lawyers") ? "bg-amber-50 text-amber-500" : "text-slate-900 hover:bg-slate-50"
+                isActive("/browse") ? "bg-amber-50 text-amber-500" : "text-slate-900 hover:bg-slate-50"
               }`}
             >
               Browse Lawyers

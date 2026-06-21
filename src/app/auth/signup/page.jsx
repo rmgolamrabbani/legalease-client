@@ -76,7 +76,7 @@ export default function SignUp() {
         email: formData.email,
         password: formData.password,
         name: formData.fullName,
-        data: { role: role } // BetterAuth মেটাডাটা রোল ম্যাপ
+        role: role, // BetterAuth মেটাডাটা রোল ম্যাপ
       });
 
       if (response?.error) {
