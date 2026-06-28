@@ -4,7 +4,6 @@ import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { User, Scale, Mail, Lock, ArrowRight, Eye, EyeOff, Check, X } from "lucide-react";
-// আপনার প্রজেক্টের auth-client এর সঠিক পাথ এবং মেথড নিশ্চিত করুন
 import { signUp, signIn } from "@/lib/auth-client"; 
 
 export default function SignUp() {
@@ -23,7 +22,7 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   
-  // পাসওয়ার্ড শো/হাইড স্টেট
+  // পাসওয়ার্ড শো/হাইড স্টেট
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -34,10 +33,10 @@ export default function SignUp() {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
-    if (error) setError(""); // ইউজার টাইপ করা শুরু করলে এরর মেসেজ মুছে যাবে
+    if (error) setError(""); 
   };
 
-  // প্রো-লেভেল পাসওয়ার্ড স্ট্রেন্থ চেকার (লাইভ ভ্যালিডেশন)
+  // লাইভ পাসওয়ার্ড স্ট্রেন্থ চেকার
   const passwordRequirements = useMemo(() => {
     const p = formData.password;
     return [
@@ -48,16 +47,14 @@ export default function SignUp() {
     ];
   }, [formData.password]);
 
-  // সব রিকোয়ারমেন্ট ম্যাচ করেছে কিনা
   const isPasswordValid = passwordRequirements.every(req => req.valid);
   const doPasswordsMatch = formData.password === formData.confirmPassword;
 
-  // ফর্ম সাবমিট হ্যান্ডলার (Email + Password)
+  // ফর্ম সাবমিট হ্যান্ডলার
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    // প্রো-লেভেল সিকিউরিটি চেইন ভ্যালিডেশন
     if (!isPasswordValid) {
       setError("Please fulfill all password strength criteria.");
       return;
@@ -71,19 +68,19 @@ export default function SignUp() {
     setLoading(true);
     
     try {
-      // BetterAuth এ সাইনআপ রিকোয়েস্ট
+      // BetterAuth সাইনআপ রিকোয়েস্ট
       const response = await signUp.email({
         email: formData.email,
         password: formData.password,
         name: formData.fullName,
-        role: role, // BetterAuth মেটাডাটা রোল ম্যাপ
+        role: role, 
       });
 
       if (response?.error) {
         setError(response.error.message || "Registration failed. Email might already exist.");
       } else {
-        // সফল হলে হোম পেজে রিডাইরেক্ট
         router.push("/");
+        router.refresh();
       }
     } catch (err) {
       setError("Something went wrong. Please try again.");
@@ -96,10 +93,11 @@ export default function SignUp() {
   // Google OAuth হ্যান্ডলার
   const handleGoogleLogin = async () => {
     setLoading(true);
+    setError("");
     try {
       await signIn.social({
         provider: "google",
-        callbackURL: "/", // লগইন সফল হলে হোম পেজে যাবে
+        callbackURL: "/", 
       });
     } catch (err) {
       setError("Google authentication failed.");
@@ -130,14 +128,14 @@ export default function SignUp() {
           </div>
         )}
 
-        {/* STEP 1: Role Choice (User / Lawyer Segment) */}
+        {/* Role Choice */}
         <div className="space-y-2">
           <label className="text-[11px] font-extrabold text-slate-800 uppercase tracking-wider block">
             Select Your Profile Role
           </label>
           <div className="grid grid-cols-2 gap-4">
             
-            {/* Regular Client Role Card */}
+            {/* Client Role */}
             <button
               type="button"
               onClick={() => setRole("user")}
@@ -156,7 +154,7 @@ export default function SignUp() {
               </div>
             </button>
 
-            {/* Certified Lawyer Role Card */}
+            {/* Lawyer Role */}
             <button
               type="button"
               onClick={() => setRole("lawyer")}
@@ -178,7 +176,7 @@ export default function SignUp() {
           </div>
         </div>
 
-        {/* Google Login OAuth Flow Integration */}
+        {/* Google OAuth Button */}
         <button
           type="button"
           disabled={loading}
@@ -200,10 +198,10 @@ export default function SignUp() {
           <div className="flex-grow border-t border-slate-100"></div>
         </div>
 
-        {/* Interactive Form Body */}
+        {/* Form Body */}
         <form onSubmit={handleSubmit} className="space-y-4">
           
-          {/* Full Name input */}
+          {/* Full Name */}
           <div className="space-y-1">
             <label className="text-[11px] font-bold text-slate-500 block">Full Name</label>
             <div className="relative">
@@ -220,7 +218,7 @@ export default function SignUp() {
             </div>
           </div>
 
-          {/* Email Input */}
+          {/* Email */}
           <div className="space-y-1">
             <label className="text-[11px] font-bold text-slate-500 block">Email Address</label>
             <div className="relative">
@@ -237,7 +235,7 @@ export default function SignUp() {
             </div>
           </div>
 
-          {/* Password input with Show/Hide and Strength Checker */}
+          {/* Password */}
           <div className="space-y-1">
             <label className="text-[11px] font-bold text-slate-500 block">Password</label>
             <div className="relative">
@@ -262,7 +260,7 @@ export default function SignUp() {
               </button>
             </div>
 
-            {/* পাসওয়ার্ড রিকোয়ারমেন্টস ইন্ডিকেটর (লাইভ প্যানেল) */}
+            {/* Live Password Requirements Panel */}
             {formData.password && (
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 mt-2 grid grid-cols-2 gap-2 transition-all">
                 {passwordRequirements.map((req) => (
@@ -281,7 +279,7 @@ export default function SignUp() {
             )}
           </div>
 
-          {/* Confirm Password input with Show/Hide */}
+          {/* Confirm Password */}
           <div className="space-y-1">
             <label className="text-[11px] font-bold text-slate-500 block">Confirm Password</label>
             <div className="relative">
@@ -314,7 +312,7 @@ export default function SignUp() {
             )}
           </div>
 
-          {/* Legal Document Terms Checkbox */}
+          {/* Terms & Conditions */}
           <div className="flex items-start gap-2 pt-1">
             <input
               type="checkbox"
@@ -330,7 +328,7 @@ export default function SignUp() {
             </label>
           </div>
 
-          {/* Dynamic Submit Trigger Button */}
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
@@ -348,11 +346,11 @@ export default function SignUp() {
 
         </form>
         
-        {/* Existing User Redirect Link Context */}
+        {/* Sign In Link */}
         <div className="text-center pt-2">
           <p className="text-xs text-slate-400 font-medium">
             Already have an operational account?{" "}
-            <Link href="/login" className="text-amber-600 font-black hover:underline">
+            <Link href="/auth/login" className="text-amber-600 font-black hover:underline">
               Sign In
             </Link>
           </p>

@@ -158,24 +158,6 @@ export default function Navbar() {
                     Overview
                   </Link>
 
-                  <Link
-                    href="/dashboard/bookings"
-                    onClick={() => setDesktopDropdownOpen(false)}
-                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-                  >
-                    <Calendar size={16} className="text-slate-400" />
-                    Bookings
-                  </Link>
-
-                  <Link
-                    href="/dashboard/profile"
-                    onClick={() => setDesktopDropdownOpen(false)}
-                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-                  >
-                    <User size={16} className="text-slate-400" />
-                    Profile
-                  </Link>
-
                   <button
                     onClick={handleSignOut}
                     className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors text-left mt-1 border-t border-slate-50 pt-1.5"
@@ -282,20 +264,7 @@ export default function Navbar() {
                   >
                     Overview
                   </Link>
-                  <Link
-                    href="/dashboard/bookings"
-                    onClick={() => setMobileOpen(false)}
-                    className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
-                  >
-                    Bookings
-                  </Link>
-                  <Link
-                    href="/dashboard/profile"
-                    onClick={() => setMobileOpen(false)}
-                    className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
-                  >
-                    Profile
-                  </Link>
+                
                 </div>
               )}
             </div>

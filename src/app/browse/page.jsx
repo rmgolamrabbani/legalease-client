@@ -2,51 +2,50 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Search, SlidersHorizontal, ArrowUpDown, ShieldCheck, Clock, DollarSign, ArrowRight, Loader2 } from "lucide-react";
+import { Search, SlidersHorizontal, ShieldCheck, ArrowRight, DollarSign, Briefcase, Eye } from "lucide-react";
 
 export default function BrowseLawyers() {
   const router = useRouter();
-  
-  // স্টেটস
-  const [profile, setProfile] = useState(null);
+  const [lawyers, setLawyers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedSpecialization, setSelectedSpecialization] = useState("All");
-  const [sortBy, setSortBy] = useState("default");
+  const [selectedCategory, setSelectedCategory] = useState("All");
 
-  // ব্যাকএন্ড থেকে প্রোফাইল ডেটা লোড করা
   useEffect(() => {
-    fetch("http://localhost:5000/api/profile")
+    // ব্যাকেন্ড এপিআই থেকে সরাসরি লয়ার প্রোফাইল ডেটা ফেচ করা হচ্ছে
+    fetch("http://localhost:5000/api/lawyers")
       .then((res) => res.json())
       .then((data) => {
-        // ডেটাবেজে নাম বা টাইটেল না থাকলে ডেমো ডেটা ফলব্যাক হিসেবে সেট করা হয়েছে সৌন্দর্যের জন্য
-        const structuredData = {
-          ...data,
-          name: data.name || "Adv. Raisul Islam",
-          title: data.title || "Senior Advocate, Supreme Court",
-          specialization: data.specialization || "Corporate Law" // ফিল্টারিং ইন্টিগ্রেশনের জন্য
-        };
-        setProfile(structuredData);
+        if (Array.isArray(data)) {
+          setLawyers(data);
+        } else {
+          setLawyers([]);
+        }
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Error fetching profile:", err);
+        console.error("Error fetching lawyer profiles:", err);
         setLoading(false);
       });
   }, []);
 
-  // ফিল্টার ড্রপডাউনের জন্য স্পেশালাইজেশন লিস্ট
-  const specializations = ["All", "Corporate Law", "Criminal Law", "Family Law", "Cyber Crime"];
+  // ডাটাবেজের category ফরম্যাট অনুযায়ী ড্রপডাউন লিস্ট
+  const categories = ["All", "Criminal", "Family", "Corporate", "Cyber Crime", "General Practice"];
 
-  // সার্চ এবং ফিল্টার লজিক প্রসেসিং
+  // সার্চ এবং ক্যাটাগরি অনুযায়ী ফিল্টারিং (নিরাপদ লজিক)
   const getFilteredPractitioners = () => {
-    if (!profile) return [];
+    if (!lawyers || lawyers.length === 0) return [];
     
-    const matchesSearch = profile.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          profile.bio.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = selectedSpecialization === "All" || profile.specialization === selectedSpecialization;
+    return lawyers.filter((lawyer) => {
+      const name = lawyer && lawyer.name ? lawyer.name.toLowerCase() : "";
+      const category = lawyer && lawyer.category ? lawyer.category : "General Practice";
 
-    return matchesSearch && matchesFilter ? [profile] : [];
+      const matchesSearch = name.includes(searchTerm.toLowerCase());
+      const matchesFilter = selectedCategory === "All" || 
+        category.toLowerCase() === selectedCategory.toLowerCase();
+
+      return matchesSearch && matchesFilter;
+    });
   };
 
   const displayedPractitioners = getFilteredPractitioners();
@@ -61,60 +60,41 @@ export default function BrowseLawyers() {
             Explore Verified Legal Practitioners
           </h1>
           <p className="text-sm text-slate-500 font-medium max-w-2xl">
-            Find and connect with top-rated certified advocates across various specializations. Direct hiring requires authentication.
+            Find and connect with top-rated certified advocates across various specializations.
           </p>
         </div>
 
-        {/* MIDDLE CONTROL BAR: Search, Filter and Sort controls */}
+        {/* MIDDLE CONTROL BAR */}
         <div className="bg-white border border-slate-200/60 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
-          
-          {/* Realtime Search Input */}
           <div className="relative w-full md:max-w-md">
             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by practitioner name or keyword..."
+              placeholder="Search by practitioner name..."
               className="w-full pl-11 pr-4 py-2.5 border border-slate-200 rounded-xl bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
             />
           </div>
 
-          {/* Filters & Sorting */}
           <div className="w-full md:w-auto flex flex-wrap sm:flex-nowrap gap-3 items-center justify-end">
-            {/* Category Dropdown */}
             <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 w-full sm:w-auto">
               <SlidersHorizontal size={16} className="text-slate-500" />
               <select
-                value={selectedSpecialization}
-                onChange={(e) => setSelectedSpecialization(e.target.value)}
-                className="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer pr-4"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer pr-4 uppercase"
               >
-                {specializations.map((spec) => (
-                  <option key={spec} value={spec}>{spec}</option>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
                 ))}
-              </select>
-            </div>
-
-            {/* Sorting Dropdown */}
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 w-full sm:w-auto">
-              <ArrowUpDown size={16} className="text-slate-500" />
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer pr-4"
-              >
-                <option value="default">Sort: Recommended</option>
-                <option value="rate-low">Price: Low to High</option>
-                <option value="rate-high">Price: High to Low</option>
               </select>
             </div>
           </div>
         </div>
 
-        {/* BOTTOM: DYNAMIC CARD DISPLAY */}
+        {/* BOTTOM: GRID */}
         {loading ? (
-          /* SKELETON LOADING STATE */
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             {[...Array(4)].map((_, idx) => (
               <div key={idx} className="bg-white border border-slate-100 rounded-3xl p-6 space-y-4 animate-pulse">
@@ -126,104 +106,95 @@ export default function BrowseLawyers() {
                   </div>
                 </div>
                 <div className="h-10 bg-slate-200 rounded-xl w-full" />
-                <div className="space-y-2">
-                  <div className="h-3 bg-slate-200 rounded w-full" />
-                  <div className="h-3 bg-slate-200 rounded w-5/6" />
-                </div>
-                <div className="h-10 bg-slate-200 rounded-xl w-full pt-4" />
               </div>
             ))}
           </div>
         ) : displayedPractitioners.length === 0 ? (
-          /* EMPTY STATE */
-          <div className="text-center py-20 bg-white border border-slate-150 rounded-3xl p-8 max-w-lg mx-auto space-y-3 shadow-sm">
-            <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mx-auto text-lg font-bold">!</div>
+          <div className="text-center py-20 bg-white border border-slate-150 rounded-3xl p-8 max-w-lg mx-auto shadow-sm">
             <h3 className="text-base font-bold text-slate-800">No Practitioners Found</h3>
-            <p className="text-xs text-slate-400 font-medium">
-              We couldn't find any practitioners matching your current search or filter criteria.
-            </p>
-            <button 
-              onClick={() => { setSearchTerm(""); setSelectedSpecialization("All"); setSortBy("default"); }}
-              className="mt-2 text-xs font-extrabold text-amber-600 hover:underline"
-            >
-              Reset Filters
-            </button>
           </div>
         ) : (
-          /* MAIN GRID: আপনার দেওয়া প্রিমিয়াম কার্ডটি এখানে ম্যাপ হচ্ছে */
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-            {displayedPractitioners.map((practitioner, index) => (
-              <div 
-                key={practitioner._id || index}
-                className="w-full bg-white border border-slate-100 rounded-3xl p-6 shadow-xl shadow-slate-950/5 flex flex-col justify-between hover:border-amber-500/30 transition-all duration-300 group"
-              >
-                {/* টপ সেকশন: ইমেজ এবং নাম/টাইটেল */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="relative">
-                      <img
-                        src={practitioner.avatarUrl || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150"}
-                        alt={practitioner.name}
-                        className="w-16 h-16 rounded-2xl object-cover border-2 border-slate-50 shadow-md group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute -bottom-1 -right-1 bg-amber-500 text-slate-950 p-0.5 rounded-lg border-2 border-white">
-                        <ShieldCheck size={12} className="fill-current" />
+            {displayedPractitioners.map((practitioner, index) => {
+              const targetId = practitioner._id?.$oid || practitioner._id || index;
+              
+              return (
+                <div 
+                  key={targetId}
+                  className="w-full bg-white border border-slate-100 rounded-3xl p-6 shadow-xl shadow-slate-950/5 flex flex-col justify-between hover:border-amber-500/30 transition-all duration-300 group relative overflow-hidden"
+                >
+                  {/* Status Badge (Top Right Corner) */}
+                  <div className="absolute top-4 right-4">
+                    <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm ${
+                      practitioner.status === "Available" 
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200" 
+                        : "bg-rose-50 text-rose-700 border border-rose-200"
+                    }`}>
+                      {practitioner.status || "Unavailable"}
+                    </span>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Image, Name, Category */}
+                    <div className="flex items-start gap-4 pt-2">
+                      <div className="relative flex-shrink-0">
+                        {practitioner.avatarUrl ? (
+                          <img
+                            src={practitioner.avatarUrl}
+                            alt={practitioner.name}
+                            className="w-16 h-16 rounded-2xl object-cover border-2 border-slate-50 shadow-md group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-700 border-2 border-slate-50 shadow-md group-hover:scale-105 transition-transform duration-300 flex items-center justify-center font-black text-xl uppercase">
+                            {practitioner.name ? practitioner.name.charAt(0) : "L"}
+                          </div>
+                        )}
+                        <div className="absolute -bottom-1 -right-1 bg-amber-500 text-slate-950 p-0.5 rounded-lg border-2 border-white">
+                          <ShieldCheck size={12} className="fill-current" />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-1 pr-14">
+                        <h3 className="text-base font-black text-slate-900 tracking-tight line-clamp-1">
+                          {practitioner.name || "New Lawyer"}
+                        </h3>
+                        <div className="flex items-center gap-1 text-xs text-amber-600 font-bold tracking-wide uppercase">
+                          <Briefcase size={12} />
+                          <span>{practitioner.category || "General Practice"}</span>
+                        </div>
                       </div>
                     </div>
-                    
-                    <div className="space-y-0.5">
-                      <h3 className="text-base font-black text-slate-900 tracking-tight flex items-center gap-1.5">
-                        {practitioner.name}
-                      </h3>
-                      <p className="text-xs text-amber-600 font-bold tracking-wide uppercase">
-                        {practitioner.title}
-                      </p>
+
+                    {/* Experience & Hourly Rate Display */}
+                    <div className="bg-slate-50/80 rounded-2xl p-3 flex items-center justify-between border border-slate-100 mt-2">
+                      <div className="text-center flex-1 border-r border-slate-200/60">
+                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Experience</p>
+                        <p className="text-xs font-black text-slate-700">{practitioner.experience || "0 Years"}</p>
+                      </div>
+                      <div className="text-center flex-1">
+                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Hourly Rate</p>
+                        <p className="text-xs font-black text-slate-900 flex items-center justify-center text-amber-600">
+                          <DollarSign size={12} className="-mr-0.5" />
+                          {practitioner.hourlyRate || "0"}/hr
+                        </p>
+                      </div>
                     </div>
                   </div>
 
-                  {/* ইনফো ব্যাজ (Experience & Hourly Rate) */}
-                  <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                    <div className="flex items-center gap-2 px-2 py-1">
-                      <Clock size={14} className="text-slate-400" />
-                      <div className="space-y-0.5">
-                        <span className="text-[10px] text-slate-400 font-bold block leading-none">EXPERIENCE</span>
-                        <span className="text-xs font-black text-slate-800">{practitioner.experience || "N/A"}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 px-2 py-1 border-l border-slate-200">
-                      <DollarSign size={14} className="text-slate-400" />
-                      <div className="space-y-0.5">
-                        <span className="text-[10px] text-slate-400 font-bold block leading-none">HOURLY RATE</span>
-                        <span className="text-xs font-black text-slate-800">${practitioner.hourlyRate}/hr</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* বায়ো সেকশন */}
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase block">About Practitioner</span>
-                    <p className="text-xs text-slate-600 font-medium leading-relaxed line-clamp-3">
-                      {practitioner.bio}
-                    </p>
+                  {/* View Details Button */}
+                  <div className="pt-4 mt-4 border-t border-slate-100">
+                    <button 
+                      onClick={() => router.push(`/browse/${targetId}`)}
+                      className="w-full py-3 bg-slate-900 text-white font-black text-xs rounded-xl hover:bg-amber-500 hover:text-slate-950 transition-all duration-300 flex items-center justify-center gap-1.5 shadow-md shadow-slate-950/10 group-hover:shadow-amber-500/10"
+                    >
+                      <Eye size={14} />
+                      View Details
+                      <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                    </button>
                   </div>
                 </div>
-
-                {/* অ্যাকশন বাটন সেকশন */}
-                <div className="pt-5 mt-5 border-t border-slate-100">
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      alert(`Initiating hire request for ${practitioner.name}`);
-                    }}
-                    className="w-full py-3 bg-slate-900 text-white font-black text-xs rounded-xl hover:bg-amber-500 hover:text-slate-950 transition-all duration-300 flex items-center justify-center gap-1.5 shadow-md shadow-slate-950/10 group-hover:shadow-amber-500/10"
-                  >
-                    Hire Now 
-                    <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

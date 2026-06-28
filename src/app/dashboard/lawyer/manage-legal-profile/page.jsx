@@ -1,291 +1,271 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Upload, Plus, Trash2, DollarSign, Sparkles, Loader2 } from "lucide-react";
-import toast, { Toaster } from 'react-hot-toast';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import Swal from 'sweetalert2';
+import { useSession } from "@/lib/auth-client"; 
 
 export default function ManageProfile() {
-  // প্রোফাইল ডাটা স্টেট
-  const [profile, setProfile] = useState({
-    bio: "",
-    experience: "",
-    hourlyRate: "",
-    avatarUrl: "",
-  });
 
-  // সার্ভিসের স্টেট
+  const { data: session, isPending: sessionLoading } = useSession();
+  const userEmail = session?.user?.email;
+  
+  // Profile States
+  const [name, setName] = useState('');
+  const [bio, setBio] = useState('');
+  const [experience, setExperience] = useState('');
+  const [hourlyRate, setHourlyRate] = useState('');
+  const [category, setCategory] = useState('General Practice');
+  const [status, setStatus] = useState('Available');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  // Services CRUD States
   const [services, setServices] = useState([]);
-  const [newService, setNewService] = useState({ title: "", cost: "" });
-  const [uploading, setUploading] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [serviceTitle, setServiceTitle] = useState('');
+  const [serviceCost, setServiceCost] = useState('');
 
-  // ব্যাকএন্ড URL (আপনার পোর্ট অনুযায়ী পরিবর্তন করতে পারেন)
-  const BACKEND_URL = "http://localhost:5000/api";
+  const IMGBB_API_KEY = process.env.NEXT_PUBLIC_IMGBB_API_KEY || "YOUR_ACTUAL_IMGBB_API_KEY";
 
-  // ডেটাবেজ থেকে ডেটা লোড করার ফাংশন
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      // প্রোফাইল ডাটা ফেচ
-      const profileRes = await fetch(`${BACKEND_URL}/profile`);
-      const profileData = await profileRes.json();
-      setProfile(profileData);
-
-      // সার্ভিস ডাটা ফেচ
-      const servicesRes = await fetch(`${BACKEND_URL}/services`);
-      const servicesData = await servicesRes.json();
-      setServices(servicesData);
-    } catch (error) {
-      console.error("Error loading data:", error);
-      toast.error("Failed to load data from database.");
-    } finally {
-      setLoading(false);
-    }
+  // টোস্ট মেসেজ হেল্পার (English)
+  const showToast = (icon, title) => {
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: icon,
+      title: title,
+      showConfirmButton: false,
+      timer: 3000,
+      timerProgressBar: true,
+    });
   };
 
-  // কম্পোনেন্ট মাউন্ট হলে ডাটা লোড হবে
+  // ১. সেশন থেকে ইমেইল পাওয়ার পর প্রোফাইল ও সার্ভিস ডাটা লোড করা
   useEffect(() => {
-    loadData();
-  }, []);
+    if (userEmail) {
+      // প্রোফাইল ডাটা আনা
+      axios.get(`http://localhost:5000/api/profile?email=${userEmail}`)
+        .then(res => {
+          if (res.data) {
+            setName(res.data.name || '');
+            setBio(res.data.bio || '');
+            setExperience(res.data.experience || '');
+            setHourlyRate(res.data.hourlyRate || '');
+            setCategory(res.data.category || 'General Practice');
+            setStatus(res.data.status || 'Available');
+            setAvatarUrl(res.data.avatarUrl || '');
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          showToast('error', 'Failed to load profile data');
+        });
 
-  // imgBB Image Upload Integration Handler
+      // সার্ভিস লিস্ট আনা
+      fetchServices(userEmail);
+    }
+  }, [userEmail]);
+
+  // সার্ভিস লিস্ট রিফ্রেশ করার ফাংশন
+  const fetchServices = (email) => {
+    axios.get(`http://localhost:5000/api/services?email=${email}`)
+      .then(res => setServices(res.data || []))
+      .catch(err => console.error(err));
+  };
+
+  // ২. ইমেজ আপলোড (ImgBB)
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    setUploading(true);
+    setUploadingImage(true);
     const formData = new FormData();
-    formData.append("image", file);
+    formData.append('image', file);
 
     try {
-      const IMGBB_API_KEY = process.env.NEXT_PUBLIC_IMGBB_API_KEY;
-      const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await response.json();
-      if (result.success) {
-        setProfile((prev) => ({ ...prev, avatarUrl: result.data.url }));
-        toast.success("Image uploaded to imgBB successfully!");
+      const response = await axios.post(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, formData);
+      if (response.data?.data?.url) {
+        setAvatarUrl(response.data.data.url);
+        showToast('success', 'Image uploaded successfully');
       } else {
-        toast.error("Image upload failed. Check API key.");
-      }
-    } catch (error) {
-      console.error("Error uploading image:", error);
-      toast.error("Network error during image upload.");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  // Profile Save/Update Handler
-  const handleSaveProfile = async () => {
-    try {
-      const response = await fetch(`${BACKEND_URL}/profile`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(profile),
-      });
-
-      if (response.ok) {
-        toast.success("Profile updated successfully!");
-        loadData(); // রিলোড বা রি-ফেচ করার জন্য 
-      } else {
-        toast.error("Failed to update profile.");
+        showToast('error', 'Image upload failed');
       }
     } catch (error) {
       console.error(error);
-      toast.error("Something went wrong!");
+      showToast('error', 'Error uploading image');
+    } finally {
+      setUploadingImage(false);
     }
   };
 
-  // CRUD: Add New Service Action
+  // ৩. লয়ার প্রোফাইল সেভ করা (ডায়নামিক ইমেইল)
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    if (!userEmail) {
+      showToast('error', 'User session not found. Please log in again.');
+      return;
+    }
+
+    const profileData = {
+      email: userEmail, // BetterAuth সেশন থেকে রিয়েলটাইম ডায়নামিক ইমেইল যাচ্ছে
+      name, bio, experience, hourlyRate, category, status, avatarUrl
+    };
+
+    try {
+      const res = await axios.put('http://localhost:5000/api/profile', profileData);
+      if (res.data.success) {
+        showToast('success', 'Profile updated successfully');
+      } else {
+        showToast('error', 'Failed to update profile');
+      }
+    } catch (error) {
+      console.error(error);
+      showToast('error', 'Server error during profile update');
+    }
+  };
+
+  // ৪. নতুন সার্ভিস যুক্ত করা
   const handleAddService = async (e) => {
     e.preventDefault();
-    if (!newService.title || !newService.cost) return;
+    if (!serviceTitle || !serviceCost) {
+      showToast('warning', 'Please fill in all service fields');
+      return;
+    }
 
     try {
-      const response = await fetch(`${BACKEND_URL}/services`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: newService.title,
-          cost: parseFloat(newService.cost)
-        }),
-      });
+      const newService = {
+        title: serviceTitle,
+        cost: serviceCost,
+        lawyerEmail: userEmail
+      };
 
-      if (response.ok) {
-        toast.success("New service deployed!");
-        setNewService({ title: "", cost: "" });
-        loadData(); // নতুন সার্ভিসসহ লিস্ট আপডেট করার জন্য রি-ফেচ
-      } else {
-        toast.error("Failed to add service.");
+      const res = await axios.post('http://localhost:5000/api/services', newService);
+      if (res.data.insertedId) {
+        showToast('success', 'New service deployed successfully');
+        setServiceTitle('');
+        setServiceCost('');
+        fetchServices(userEmail);
       }
     } catch (error) {
       console.error(error);
-      toast.error("Error connecting to server.");
+      showToast('error', 'Failed to add service');
     }
   };
 
-  // CRUD: Delete Service Action
+  // ৫. সার্ভিস ডিলিট করা
   const handleDeleteService = async (id) => {
     try {
-      const response = await fetch(`${BACKEND_URL}/services/${id}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        toast.success("Service removed successfully.");
-        loadData(); // লিস্ট থেকে বাদ দিয়ে ডাটা রিলোড করার জন্য
-      } else {
-        toast.error("Failed to delete service.");
+      const res = await axios.delete(`http://localhost:5000/api/services/${id}`);
+      if (res.data.deletedCount > 0) {
+        showToast('success', 'Service deleted successfully');
+        fetchServices(userEmail);
       }
     } catch (error) {
       console.error(error);
-      toast.error("Error deleting service.");
+      showToast('error', 'Failed to delete service');
     }
   };
 
-  if (loading) {
+  // সেশন লোড হওয়ার সময় লোডিং স্টেট দেখানো
+  if (sessionLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="animate-spin text-amber-500" size={40} />
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-1 sm:p-4">
-      {/* Toast Container */}
-      <Toaster position="top-right" reverseOrder={false} />
-
-      {/* COLUMN 1 & 2: Profile Update */}
-      <div className="lg:col-span-2 bg-white border border-slate-100 rounded-3xl p-6 shadow-xl shadow-slate-950/5 space-y-6">
-        <div>
-          <h2 className="text-xl font-black text-slate-900 tracking-tight">Manage Practitioner Profile</h2>
-          <p className="text-xs text-slate-400 font-medium">Update your bio parameters, expertise benchmarks, and premium avatar.</p>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center gap-5 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-          <div className="relative group">
-            <img
-              src={profile.avatarUrl || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150"}
-              alt="Lawyer Avatar"
-              className="w-20 h-20 rounded-2xl object-cover border-2 border-white shadow-md bg-white"
-            />
-            {uploading && (
-              <div className="absolute inset-0 bg-slate-950/40 rounded-2xl flex items-center justify-center text-white">
-                <Loader2 size={18} className="animate-spin" />
-              </div>
-            )}
+    <div className="p-6 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Left Form: Profile Settings */}
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h2 className="text-2xl font-bold mb-6 text-gray-800">Manage Professional Profile</h2>
+        <form onSubmit={handleSaveProfile} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Full Name</label>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full p-2 border rounded" required />
           </div>
-          <div className="space-y-1.5 text-center sm:text-left">
-            <label className="cursor-pointer inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-amber-500 hover:text-slate-950 transition-all">
-              <Upload size={13} /> Change Avatar via imgBB
-              <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-            </label>
-            <p className="text-[10px] text-slate-400 font-medium block">Supports JPG, PNG formats up to 5MB.</p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Category / Specialization</label>
+            <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full p-2 border rounded">
+              <option value="Family">Family Law</option>
+              <option value="Criminal">Criminal Law</option>
+              <option value="Corporate">Corporate Law</option>
+              <option value="General Practice">General Practice</option>
+            </select>
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="text-[11px] font-bold text-slate-500 block">Total Legal Experience</label>
-            <input
-              type="text"
-              value={profile.experience}
-              onChange={(e) => setProfile({ ...profile, experience: e.target.value })}
-              className="w-full px-4 py-2.5 border border-slate-200 bg-slate-50 rounded-xl text-xs font-semibold focus:outline-none focus:border-amber-500"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Experience</label>
+              <input type="text" value={experience} onChange={(e) => setExperience(e.target.value)} className="w-full p-2 border rounded" placeholder="e.g. 5 Years" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Hourly Rate ($)</label>
+              <input type="number" value={hourlyRate} onChange={(e) => setHourlyRate(e.target.value)} className="w-full p-2 border rounded" placeholder="e.g. 50" />
+            </div>
           </div>
-          <div className="space-y-1">
-            <label className="text-[11px] font-bold text-slate-500 block">Base Hourly Rate ($)</label>
-            <input
-              type="number"
-              value={profile.hourlyRate}
-              onChange={(e) => setProfile({ ...profile, hourlyRate: e.target.value })}
-              className="w-full px-4 py-2.5 border border-slate-200 bg-slate-50 rounded-xl text-xs font-semibold focus:outline-none focus:border-amber-500"
-            />
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Availability Status</label>
+            <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full p-2 border rounded">
+              <option value="Available">Available</option>
+              <option value="Busy">Busy</option>
+            </select>
           </div>
-          <div className="sm:col-span-2 space-y-1">
-            <label className="text-[11px] font-bold text-slate-500 block">Professional Bio Statement</label>
-            <textarea
-              rows={4}
-              value={profile.bio}
-              onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-              className="w-full px-4 py-2.5 border border-slate-200 bg-slate-50 rounded-xl text-xs font-medium focus:outline-none focus:border-amber-500 resize-none leading-relaxed"
-            />
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Professional Bio</label>
+            <textarea value={bio} onChange={(e) => setBio(e.target.value)} className="w-full p-2 border rounded h-24" required></textarea>
           </div>
-        </div>
-
-        <button 
-          onClick={handleSaveProfile}
-          className="px-5 py-2.5 bg-slate-900 text-white font-black text-xs rounded-xl hover:bg-amber-500 hover:text-slate-950 transition-all shadow-md shadow-slate-950/10"
-        >
-          Save Profile Changes
-        </button>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Profile Picture</label>
+            <input type="file" onChange={handleImageUpload} className="w-full p-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+            {uploadingImage && <p className="text-blue-500 text-xs mt-1">Uploading image...</p>}
+            {avatarUrl && <img src={avatarUrl} alt="Avatar" className="w-16 h-16 object-cover rounded-full mt-2 border" />}
+          </div>
+          <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded transition">
+            Save Profile Changes
+          </button>
+        </form>
       </div>
 
-      {/* COLUMN 3: Services (CRUD) */}
-      <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-xl shadow-slate-950/5 flex flex-col justify-between space-y-6">
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-base font-black text-slate-900 flex items-center gap-1">
-              <Sparkles size={16} className="text-amber-500" /> Custom Services CRUD
-            </h3>
-            <p className="text-[11px] text-slate-400 font-medium">Add, review, or clean up fixed-rate specific service items.</p>
-          </div>
-
-          <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-            {services.map((service) => (
-              <div key={service._id} className="flex justify-between items-center p-3 border border-slate-100 bg-slate-50/50 rounded-xl hover:border-amber-500/20 transition-all">
-                <div className="space-y-0.5">
-                  <p className="text-xs font-bold text-slate-800">{service.title}</p>
-                  <p className="text-[10px] text-slate-400 font-black flex items-center gap-0.5"><DollarSign size={10} />{service.cost} Fixed</p>
-                </div>
-                <button
-                  onClick={() => handleDeleteService(service._id)}
-                  className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ))}
-          </div>
+      {/* Right Section: Custom Services CRUD */}
+      <div className="bg-white p-6 rounded-lg shadow-md space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold mb-4 text-gray-800">Deploy New Custom Service</h2>
+          <form onSubmit={handleAddService} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Service Title</label>
+              <input type="text" value={serviceTitle} onChange={(e) => setServiceTitle(e.target.value)} placeholder="e.g. Document Review" className="w-full p-2 border rounded" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Fixed Cost ($)</label>
+              <input type="number" value={serviceCost} onChange={(e) => setServiceCost(e.target.value)} placeholder="e.g. 100" className="w-full p-2 border rounded" />
+            </div>
+            <button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded transition">
+              Deploy New Service
+            </button>
+          </form>
         </div>
 
-        <form onSubmit={handleAddService} className="pt-4 border-t border-slate-100 space-y-3">
-          <div className="space-y-1">
-            <input
-              type="text"
-              placeholder="Service title e.g. NDA Drafting"
-              required
-              value={newService.title}
-              onChange={(e) => setNewService({ ...newService, title: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-amber-500"
-            />
-          </div>
-          <div className="space-y-2">
-            <div className="relative">
-              <input
-                type="number"
-                placeholder="Fixed Cost Amount"
-                required
-                value={newService.cost}
-                onChange={(e) => setNewService({ ...newService, cost: e.target.value })}
-                className="w-full pl-7 pr-3 py-2 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-amber-500"
-              />
-              <DollarSign size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            </div>
-            <button
-              type="submit"
-              className="w-full py-2.5 bg-amber-500 text-slate-950 font-black text-xs rounded-xl hover:bg-amber-600 transition-colors flex items-center justify-center gap-1 shadow-sm"
-            >
-              <Plus size={14} /> Deploy New Service
-            </button>
-          </div>
-        </form>
+        <div>
+          <h3 className="text-xl font-semibold mb-3 text-gray-700">Your Active Services</h3>
+          {services.length === 0 ? (
+            <p className="text-gray-500 text-sm">No services added yet.</p>
+          ) : (
+            <ul className="space-y-2 max-h-60 overflow-y-auto">
+              {services.map(service => (
+                <li key={service._id} className="flex justify-between items-center p-3 bg-gray-50 border rounded">
+                  <div>
+                    <p className="font-medium text-gray-800">{service.title}</p>
+                    <p className="text-sm text-green-600 font-bold">${service.cost}</p>
+                  </div>
+                  <button onClick={() => handleDeleteService(service._id)} className="bg-red-100 hover:bg-red-200 text-red-600 text-xs font-bold py-1 px-2 rounded transition">
+                    Delete
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </div>
   );
