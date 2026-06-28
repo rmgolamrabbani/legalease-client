@@ -13,8 +13,6 @@ export default function LawyerRequestsPage() {
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(null);
-
-    // helper ফাংশন: মঙ্গোডিবির আইডি থেকে স্ট্রিং আইডি বের করার জন্য
     const getCleanId = (idObj) => {
         if (!idObj) return "";
         return typeof idObj === "object" ? idObj.$oid || idObj.toString() : idObj;
@@ -91,7 +89,7 @@ export default function LawyerRequestsPage() {
             if (res.ok) {
                 toast.success(`রিকোয়েস্ট সফলভাবে ${newStatus === 'Accepted' ? 'অ্যাকসেপ্ট' : 'রিজেক্ট'} করা হয়েছে!`);
 
-                // রিয়েল-টাইম ইউআই আপডেট
+               
                 setRequests((prevRequests) =>
                     prevRequests.map((req) => {
                         const currentReqId = getCleanId(req._id);
