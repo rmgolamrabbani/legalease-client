@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, ShieldCheck, Scale, DollarSign, ChevronLeft, ChevronRight } from "lucide-react";
 
-// ৩টি প্রিমিয়াম হাই-রেজোলিউশন লিগ্যাল ইমেজ ব্যাকগ্রাউন্ডের জন্য
 const sliderImages = [
   "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=80&w=1200",
   "https://images.unsplash.com/photo-1505664194779-8beaceb93744?auto=format&fit=crop&q=80&w=1200",
@@ -15,7 +14,7 @@ const sliderImages = [
 export default function Hero() {
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  // অটো-স্লাইড চেঞ্জার (প্রতি ৫ সেকেন্ডে স্লাইড পরিবর্তন হবে)
+ 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev === sliderImages.length - 1 ? 0 : prev + 1));
@@ -47,7 +46,7 @@ export default function Hero() {
   return (
     <section className="relative w-full bg-[#020617] text-white min-h-[750px] flex items-center justify-center overflow-hidden">
       
-      {/* Background Layer: সম্পূর্ণ ব্যাকগ্রাউন্ড জুড়ে ইমেজ স্লাইডার (নিচে থাকবে) */}
+
       <div className="absolute inset-0 z-0">
         <AnimatePresence mode="wait">
           <motion.div
