@@ -212,7 +212,7 @@ export default function SignUp() {
                 required
                 value={formData.fullName}
                 onChange={handleInputChange}
-                placeholder="e.g. Anisur Rahman"
+                placeholder="Enter your full name"
                 className="w-full pl-11 pr-4 py-2.5 border border-slate-200 bg-slate-50 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
               />
             </div>
