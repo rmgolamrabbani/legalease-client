@@ -100,7 +100,7 @@ export default function Hero() {
               Connect with verified lawyers for your personal or business legal needs. Get top-tier legal presentation and secured workflow seamlessly.
             </motion.p>
 
-            {/* এনিমেটেড বাটন গ্রুপ */}
+           
             <motion.div 
               variants={textVariants} 
               className="flex flex-wrap items-center gap-4 pt-2"
@@ -119,7 +119,7 @@ export default function Hero() {
               </Link>
             </motion.div>
 
-            {/* এনিমেটেড ট্রাস্ট মেট্রিক্স */}
+          
             <motion.div 
               variants={textVariants} 
               className="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-10 border-t border-slate-800/80"
@@ -147,7 +147,7 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* ম্যানুয়াল স্লাইড নেভিগেশন কন্ট্রোল */}
+     
       <div className="absolute bottom-8 right-8 flex gap-3 z-30">
         <button 
           onClick={() => setCurrentSlide(prev => (prev === 0 ? sliderImages.length - 1 : prev - 1))}
