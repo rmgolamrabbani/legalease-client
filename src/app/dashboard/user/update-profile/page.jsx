@@ -12,17 +12,16 @@ export default function UpdateUserProfile() {
   const email = session?.user?.email;
 
   const [isSaving, setIsSaving] = useState(false);
+  
   const [formData, setFormData] = useState({
     name: "",
-    avatarUrl: "",
-    phone: "",
-    address: ""
+    avatarUrl: ""
   });
-
+  
   const BACKEND_URL = "http://localhost:5000/api";
 
   useEffect(() => {
-    if (email && role === "user") {
+    if (email) {
       fetch(`${BACKEND_URL}/dashboard-profile?email=${email}&role=${role}`)
         .then((res) => res.json())
         .then((data) => {
@@ -30,8 +29,6 @@ export default function UpdateUserProfile() {
             setFormData({
               name: data.name || session?.user?.name || "",
               avatarUrl: data.avatarUrl || session?.user?.image || "",
-              phone: data.phone || "",
-              address: data.address || ""
             });
           }
         })
@@ -47,16 +44,18 @@ export default function UpdateUserProfile() {
     e.preventDefault();
     setIsSaving(true);
     try {
-      const response = await fetch(`${BACKEND_URL}/dashboard-profile`, {
+      // ✅ এখানে আপনার তৈরি করা নতুন ব্যাকএন্ড এন্ডপয়েন্টটি দিয়ে পরিবর্তন করে দেওয়া হয়েছে
+      const response = await fetch(`${BACKEND_URL}/update-user-only`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, role, ...formData }),
       });
+
       if (response.ok) {
-        alert("Profile updated successfully!");
-        router.push("/dashboard"); // সফল হলে মূল ড্যাশবোর্ডে ফেরত যাবে
+        alert("User information updated successfully!");
+        router.push("/dashboard"); 
       } else {
-        alert("Failed to update profile.");
+        alert("Failed to update user information.");
       }
     } catch (error) {
       console.error(error);
@@ -77,7 +76,7 @@ export default function UpdateUserProfile() {
           <ArrowLeft size={16} />
         </button>
         <div>
-          <h2 className="text-xl font-black text-slate-900">Update Profile</h2>
+          <h2 className="text-xl font-black text-slate-900">Update User Name</h2>
           <p className="text-xs text-slate-400">Manage your Full Name and Profile Picture</p>
         </div>
       </div>
@@ -86,6 +85,7 @@ export default function UpdateUserProfile() {
       <div className="bg-white border border-slate-100 rounded-3xl p-5 sm:p-6 shadow-xl shadow-slate-950/5">
         <form onSubmit={handleUpdate} className="space-y-4 text-xs">
           
+          {/* ফুল নেম ইনপুট */}
           <div className="space-y-1">
             <label className="font-bold text-slate-700">Full Name</label>
             <input 
@@ -98,34 +98,13 @@ export default function UpdateUserProfile() {
             />
           </div>
           
+          {/* প্রোফাইল ইমেজ ইনপুট */}
           <div className="space-y-1">
             <label className="font-bold text-slate-700">Profile Image URL</label>
             <input 
               type="url" 
               name="avatarUrl" 
               value={formData.avatarUrl} 
-              onChange={handleChange} 
-              className="w-full p-3 border rounded-xl bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-amber-500/20 text-slate-900 font-medium" 
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="font-bold text-slate-700">Phone Number</label>
-            <input 
-              type="text" 
-              name="phone" 
-              value={formData.phone} 
-              onChange={handleChange} 
-              className="w-full p-3 border rounded-xl bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-amber-500/20 text-slate-900 font-medium" 
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="font-bold text-slate-700">Address / Location</label>
-            <input 
-              type="text" 
-              name="address" 
-              value={formData.address} 
               onChange={handleChange} 
               className="w-full p-3 border rounded-xl bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-amber-500/20 text-slate-900 font-medium" 
             />
