@@ -5,7 +5,7 @@ import { Calendar, Clock, CheckCircle, XCircle, Loader2, Check, X, User, Mail } 
 import { useSession } from "@/lib/auth-client"; 
 import toast, { Toaster } from "react-hot-toast";
 
-const BACKEND_URL = "http://localhost:5000/api";
+const BACKEND_URL = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api`;
 
 export default function LawyerRequestsPage() {
     const { data: session, isPending: sessionPending } = useSession(); 

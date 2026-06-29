@@ -112,7 +112,7 @@ export default function ManageProfile() {
     };
 
     try {
-      const res = await axios.put('http://localhost:5000/api/profile', profileData);
+      const res = await axios.put(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/profile`, profileData);
       if (res.data.success) {
         showToast('success', 'Profile updated successfully');
       } else {
@@ -139,7 +139,7 @@ export default function ManageProfile() {
         lawyerEmail: userEmail
       };
 
-      const res = await axios.post('http://localhost:5000/api/services', newService);
+      const res = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/services`, newService);
       if (res.data.insertedId) {
         showToast('success', 'New service deployed successfully');
         setServiceTitle('');
@@ -155,7 +155,7 @@ export default function ManageProfile() {
   // ৫. সার্ভিস ডিলিট করা
   const handleDeleteService = async (id) => {
     try {
-      const res = await axios.delete(`http://localhost:5000/api/services/${id}`);
+      const res = await axios.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/services/${id}`);
       if (res.data.deletedCount > 0) {
         showToast('success', 'Service deleted successfully');
         fetchServices(userEmail);

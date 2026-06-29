@@ -9,6 +9,8 @@ import {
   Settings, Users, CreditCard, BarChart3, Menu, X 
 } from "lucide-react";
 
+const BACKEND_URL = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api`;
+
 export default function DashboardLayout({ children }) {
   const { data: session, isPending } = useSession();
   const pathname = usePathname();

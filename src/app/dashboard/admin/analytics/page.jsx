@@ -6,7 +6,7 @@ import { Users, Briefcase, History, DollarSign, Loader2 } from "lucide-react";
 export default function AnalyticsOverview() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const BACKEND_URL = "http://localhost:5000/api";
+  const BACKEND_URL = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api`;
 
   useEffect(() => {
     fetch(`${BACKEND_URL}/admin/analytics`)

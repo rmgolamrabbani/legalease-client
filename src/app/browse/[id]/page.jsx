@@ -6,7 +6,7 @@ import { useSession } from "@/lib/auth-client";
 import { ShieldCheck, ArrowLeft, Calendar, MessageSquare, Sparkles, Clock, DollarSign, UserCheck, X, Briefcase, Mail, Star, Send } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 
-const BACKEND_URL = "http://localhost:5000/api";
+const BACKEND_URL = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api`;
 
 export default function LawyerDetails() {
     const params = useParams();

@@ -6,7 +6,7 @@ import { useSession } from "@/lib/auth-client";
 import { useSearchParams } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
 
-const BACKEND_URL = "http://localhost:5000/api";
+const BACKEND_URL = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api`;
 
 export default function HiringHistoryPage() {
     const { data: session, isPending: sessionPending } = useSession();

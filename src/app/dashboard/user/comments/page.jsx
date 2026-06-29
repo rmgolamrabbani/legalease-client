@@ -5,7 +5,7 @@ import { useSession } from "@/lib/auth-client"; // 💡 আপনার প্�
 import { MessageSquare, Edit2, Trash2, Star, X, Loader2, Lock } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 
-const BACKEND_URL = "http://localhost:5000/api";
+const BACKEND_URL = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api`;
 
 export default function CommentManagementPage() {
     const { data: session, status } = useSession(); // 💡 লগইন সেশন ডেটা নেওয়া হলো

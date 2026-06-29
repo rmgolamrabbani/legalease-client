@@ -6,7 +6,7 @@ import { Trash2, ShieldAlert, Loader2, Ban, CheckCircle2, Users, Scale } from "l
 export default function ManageUsers() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const BACKEND_URL = "http://localhost:5000/api";
+  const BACKEND_URL = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api`;
 
   useEffect(() => {
     fetchUsers();
