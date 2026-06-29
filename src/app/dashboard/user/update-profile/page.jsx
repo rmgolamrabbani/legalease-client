@@ -158,8 +158,6 @@ export default function UpdateUserProfile() {
 
           <h2 className="text-xl font-black text-slate-900">Update Profile</h2>
 
-          <p className="text-xs text-slate-400">Manage your Full Name and Profile Picture</p>
-
         </div>
 
       </div>

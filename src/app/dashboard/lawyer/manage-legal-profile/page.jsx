@@ -10,7 +10,7 @@ export default function ManageProfile() {
   const { data: session, isPending: sessionLoading } = useSession();
   const userEmail = session?.user?.email;
   
-  // Profile States
+  
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
   const [experience, setExperience] = useState('');
