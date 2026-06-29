@@ -11,7 +11,7 @@ export default function FeaturedLawyers() {
 
   useEffect(() => {
     // ডাটাবেজের 'profile' কালেকশন থেকে সব লয়ারদের প্রোফাইল ডেটা আনা
-    fetch("http://localhost:5000/api/lawyers")
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/lawyers`)
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {

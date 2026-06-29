@@ -13,7 +13,7 @@ export default function BrowseLawyers() {
 
   useEffect(() => {
     // ব্যাকেন্ড এপিআই থেকে সরাসরি লয়ার প্রোফাইল ডেটা ফেচ করা হচ্ছে
-    fetch("http://localhost:5000/api/lawyers")
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/lawyers`)
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {

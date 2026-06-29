@@ -44,7 +44,7 @@ export default function ManageProfile() {
   useEffect(() => {
     if (userEmail) {
       // প্রোফাইল ডাটা আনা
-      axios.get(`http://localhost:5000/api/profile?email=${userEmail}`)
+      axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/profile?email=${userEmail}`)
         .then(res => {
           if (res.data) {
             setName(res.data.name || '');
@@ -68,7 +68,7 @@ export default function ManageProfile() {
 
   // সার্ভিস লিস্ট রিফ্রেশ করার ফাংশন
   const fetchServices = (email) => {
-    axios.get(`http://localhost:5000/api/services?email=${email}`)
+    axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/services?email=${email}`)
       .then(res => setServices(res.data || []))
       .catch(err => console.error(err));
   };
